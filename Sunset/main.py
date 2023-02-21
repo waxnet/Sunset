@@ -14,8 +14,10 @@ from time import sleep
 class Sunset:
     def __init__(self):
         super(Sunset, self).__init__()
-
+        
+        self.driver_version = "110.0.5481.77"
         self.accounts_per_ip = None
+        
         self.print = color.print_
         self.input = color.input_
 
@@ -24,7 +26,7 @@ class Sunset:
 
     def install(self):
         is_sunset_installed = install_sunset.run()
-        is_driver_installed = install_driver.run()
+        is_driver_installed = install_driver.run(self.driver_version)
         if not is_sunset_installed or not is_driver_installed: exit()
 
     def start(self):
@@ -33,7 +35,7 @@ class Sunset:
         while True:
             for _ in range(self.accounts_per_ip):
                 credentials = account.generate_credentials()
-                driver = chrome.start()
+                driver = chrome.start(self.driver_version)
 
                 driver.get("https://account.microsoft.com/account?lang=en-en")
 
@@ -63,7 +65,7 @@ class Sunset:
                 account.save(credentials, configuration["accounts-file-directory"], configuration["accounts-file-name"], configuration["accounts-file-extension"])
                 self.print("light_black", "Account generated and stored successfully!\n")
 
-                driver.close()
+                driver.quit()
                 sleep(1)
             
             self.print("yellow", "Finished generation cycle, once you have changed your IP press ENTER to resume or any other key to exit..."); print()
