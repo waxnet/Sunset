@@ -5,10 +5,11 @@ from win32api import GetSystemMetrics
 from selenium import webdriver
 import os
 
-driver_directory = os.getenv("appdata") + "/Sunset/drivers/driver.exe"
 timeout = 0
 
-def start():
+def start(driver_version):
+    driver_directory = os.getenv("appdata") + f"/Sunset/drivers/{driver_version}.exe"
+
     driver_options = webdriver.ChromeOptions()
     driver_options.add_argument("--log-level=OFF")
     driver_options.add_experimental_option("prefs", {
