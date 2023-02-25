@@ -1,3 +1,4 @@
+from utilities import log
 import os
 
 def run():
@@ -8,4 +9,5 @@ def run():
             os.mkdir(main_folder)
             os.mkdir(f"{main_folder}/drivers")
         return True
-    except: return False
+    except:
+        return False

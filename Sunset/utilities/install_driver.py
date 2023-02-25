@@ -1,3 +1,4 @@
+from utilities import log
 import requests
 import zipfile
 import os
@@ -23,7 +24,9 @@ def run(driver_version):
             with zipfile.ZipFile(zipped_driver_directory,"r") as zipped_driver:
                 zipped_driver.extractall(drivers_folder)
         os.remove(zipped_driver_directory)
-        if os.path.exists(f"{drivers_folder}/LICENSE.chromedriver"): os.remove(f"{drivers_folder}/LICENSE.chromedriver")
+        if os.path.exists(f"{drivers_folder}/LICENSE.chromedriver"):
+            os.remove(f"{drivers_folder}/LICENSE.chromedriver")
         os.rename(f"{drivers_folder}/chromedriver.exe", f"{drivers_folder}/{driver_version}.exe")
         return True
-    except: return False
+    except:
+        return False

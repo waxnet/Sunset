@@ -9,22 +9,57 @@ def edit(config_file, current_config, banner, output_input):
         print_, input_ = output_input[0], output_input[1]
 
         print_("light_blue", banner, save=False)
-        if animation: sleep(1)
-        print_("cyan", "\nCurrent config :\n - back\n - file directory : " + new_config["accounts-file-directory"] + "\n - file name : " + new_config["accounts-file-name"] + "\n - file extension : " + new_config["accounts-file-extension"], save=False)
-        print_("cyan", "(Use numbers : 1 = return to the generator, 2 = set file directory)", save=False)
-        if animation: sleep(0.5)
+        if animation:
+            sleep(1)
+        print_("cyan", "\nConfig options :\n - back\n - file directory : " + new_config["accounts-file-directory"] + "\n - file name : " + new_config["accounts-file-name"] + "\n - file extension : " + new_config["accounts-file-extension"], save=False)
+        print_("cyan", "(1 = back, 2 = file directory, etc...)", save=False)
+        if animation:
+            sleep(0.5)
 
         option = input_("yellow", "\nSelect an option : ", save=False)
-        if option == "1": break
+        if option == "1":
+            break
         elif option == "2":
             new_directory = input_("yellow", "Set new accounts file directory : ", save=False)
-            if "\\" in new_directory and not new_directory.endswith("\\") and new_directory != "default": new_directory = f"{new_directory}\\"
-            elif "/" in new_directory and not new_directory.endswith("/") and new_directory != "default": new_directory = f"{new_directory}/"
+            
+            if "\\" in new_directory and not new_directory.endswith("\\") and new_directory != "default":
+                new_directory = f"{new_directory}\\"
+            elif "/" in new_directory and not new_directory.endswith("/") and new_directory != "default":
+                new_directory = f"{new_directory}/"
+            
+            if not os.path.exists(new_directory):
+                new_directory = "default"
+            
             new_config["accounts-file-directory"] = new_directory
-        elif option == "3": new_config["accounts-file-name"] = input_("yellow", "Set new accounts file name : ", save=False)
-        elif option == "4": new_config["accounts-file-extension"] = input_("yellow", "Set new accounts file extension : ", save=False)
+        elif option == "3":
+            new_name = input_("yellow", "Set new accounts file name : ", save=False)
         
-        if animation: animation = False
+            invalid_new_name = False
+            for blacklisted_character in ["<", ">", ":", "\"", "/", "\\", "|", "?", "*"]:
+                if blacklisted_character in new_name:
+                    invalid_new_name = True
+                    break
+        
+            if new_name.replace(" ", "") == "" or invalid_new_name:
+                new_name = "default"
+        
+            new_config["accounts-file-name"] = new_name
+        elif option == "4":
+            new_extension = input_("yellow", "Set new accounts file extension : ", save=False)
+        
+            invalid_new_extension = False
+            for blacklisted_character in ["<", ">", ":", "\"", "/", "\\", "|", "?", "*"]:
+                if blacklisted_character in new_extension:
+                    invalid_new_extension = True
+                    break
+        
+            if new_extension.replace(" ", "") == "" or invalid_new_extension:
+                new_extension = "default"
+        
+            new_config["accounts-file-extension"] = new_extension
+        
+        if animation:
+            animation = False
         os.system("cls")
 
     with open(config_file, "w+") as config:

@@ -6,6 +6,7 @@ from utilities import (
     chrome,
     assets,
     color,
+    log,
     cmd,
 )
 from msvcrt import getch
@@ -27,7 +28,9 @@ class Sunset:
     def install(self):
         is_sunset_installed = install_sunset.run()
         is_driver_installed = install_driver.run(self.driver_version)
-        if not is_sunset_installed or not is_driver_installed: exit()
+        if not is_sunset_installed or not is_driver_installed:
+            log.crash("error while installing dependencies")
+            exit()
 
     def start(self):
         chrome.timeout = 60
@@ -40,8 +43,10 @@ class Sunset:
                 driver.get("https://account.microsoft.com/account?lang=en-en")
 
                 self.print("light_black", "Generating account...")
-                if chrome.is_displayed(driver, "createaccounthero"): chrome.wait_for_element(driver, "createaccounthero").click()
-                else: chrome.wait_for_element(driver, "id__10").click()
+                if chrome.is_displayed(driver, "createaccounthero"):
+                    chrome.wait_for_element(driver, "createaccounthero").click()
+                else:
+                    chrome.wait_for_element(driver, "id__10").click()
 
                 chrome.wait_for_element(driver, "MemberName").send_keys(credentials["email"])
                 chrome.wait_for_element(driver, "iSignupAction").click()
@@ -55,23 +60,29 @@ class Sunset:
                 chrome.wait_for_element(driver, "BirthDay").send_keys(credentials["birthday"])
                 chrome.wait_for_element(driver, "BirthYear").send_keys(credentials["birthyear"])
                 chrome.wait_for_element(driver, "iSignupAction").click()
-
-                chrome.wait_for_element(driver, "enforcementFrame")
-                self.print("light_black", "Complete the bot verification to continue...")
-
-                chrome.wait_for_element(driver, "KmsiCheckboxField").click()
-                chrome.wait_for_element(driver, "idBtn_Back").click()
                 
-                account.save(credentials, configuration["accounts-file-directory"], configuration["accounts-file-name"], configuration["accounts-file-extension"])
-                self.print("light_black", "Account generated and stored successfully!\n")
+                if chrome.is_displayed(driver, "wlspispHipControlButtonsContainer"):
+                    driver.quit()
+                    self.print("light_black", "Phone verification detected, skipping cycle...\n")
+                    break
+                else:
+                    chrome.wait_for_element(driver, "enforcementFrame")
+                    self.print("light_black", "Complete the bot verification to continue...")
+                    
+                    chrome.wait_for_element(driver, "KmsiCheckboxField").click()
+                    chrome.wait_for_element(driver, "idBtn_Back").click()
+                    
+                    account.save(credentials, configuration["accounts-file-directory"], configuration["accounts-file-name"], configuration["accounts-file-extension"])
+                    self.print("light_black", "Account generated and stored successfully!\n")
 
-                driver.quit()
-                sleep(1)
+                    driver.quit()
+                    sleep(1)
             
             self.print("yellow", "Finished generation cycle, once you have changed your IP press ENTER to resume or any other key to exit..."); print()
             
             pressed_key = getch()
-            if pressed_key.lower() != b"\r": exit()
+            if pressed_key.lower() != b"\r":
+                exit()
 
     def console(self):
         cmd.do(["title Sunset", "mode con: cols=120 lines=30", "cls"])
@@ -79,7 +90,8 @@ class Sunset:
         self.print("light_blue", assets.get_banner("assets/banners.json")); sleep(1)
         self.print("cyan", "\nWelcome to Sunset!\n"); sleep(.25)
 
-        if self.input("yellow", "Do you want to generate new Microsoft Accounts? (y, n) : ").lower().replace(" ", "") != "y": exit()
+        if self.input("yellow", "Do you want to generate new Microsoft Accounts? (y, n) : ").lower().replace(" ", "") != "y":
+            exit()
 
         if self.input("yellow", "Do you want to edit the current configuration? (y, n) : ").lower().replace(" ", "") == "y":
             cmd.do(["cls"])
@@ -87,11 +99,13 @@ class Sunset:
             cmd.do(["cls"])
             color.load_history()
         
-        self.accounts_per_ip = int(self.input("yellow", "How many accounts do you want to generate per IP? (max 2, min 1) : ").lower().replace(" ", ""))
-        if self.accounts_per_ip > 2: self.accounts_per_ip = 2
-        elif self.accounts_per_ip < 1: self.accounts_per_ip = 1
+        self.accounts_per_ip = int(self.input("yellow", "How many accounts do you want to generate per IP? (min 1, max 3) : ").lower().replace(" ", ""))
+        if self.accounts_per_ip > 3:
+            self.accounts_per_ip = 3
+        elif self.accounts_per_ip < 1:
+            self.accounts_per_ip = 1
 
-        self.print("cyan", "\nStarting... (if you get sent to the phone verification page or the captcha doesn't work change IP)\n"); sleep(3)
+        self.print("cyan", "\nStarting... (if the captcha doesn't work change IP)\n"); sleep(3)
         self.start()
 
 Sunset()
