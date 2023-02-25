@@ -8,7 +8,7 @@ def generate_credentials():
     holder = (
         "".join(sample(ascii_letters, randint(5, 6))),
         "".join(sample(ascii_letters, randint(5, 6)))
-    ) 
+    )
 
     account["email"] = holder[0] + holder[1] + "@outlook.com"
     
@@ -23,17 +23,21 @@ def generate_credentials():
     return account
 
 def save(credentials, directory, file_name, extension):
-    if directory == "default": directory = os.getenv("userprofile") + "/Desktop/"
-    if file_name == "default": file_name = "sunset_accounts"
-    if extension == "default": extension = ".txt"
+    if directory == "default":
+        directory = os.getcwdb().decode() + "\\"
+    if file_name == "default":
+        file_name = "sunset_accounts"
+    if extension == "default":
+        extension = ".txt"
     accounts_directory = f"{directory}{file_name}{extension}"
     
     if os.path.exists(accounts_directory):
         with open(accounts_directory, "r") as previous_accounts:
             start_of_file = previous_accounts.read()
             previous_accounts.close
-    else: start_of_file = "Accounts generated with Sunset!"
+    else:
+        start_of_file = "Accounts generated with Sunset!"
 
     with open(accounts_directory, "w+") as accounts_file:
-        accounts_file.write(f"{start_of_file}\n\nEMail : " + credentials["email"] + "\nPassword : " + credentials["password"])
+        accounts_file.write(f"{start_of_file}\n\nEmail : " + credentials["email"] + "\nPassword : " + credentials["password"])
         accounts_file.close()

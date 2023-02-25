@@ -27,9 +27,11 @@ def load_history():
 
 def print_(color, message, save=True):
     print(colors[color] + message + Fore.RESET)
-    if save: history.append([color, message])
+    if save:
+        history.append([color, message])
 
 def input_(color, message, save=True):
     data = input(colors[color] + message + Fore.RESET)
-    if save: history.append([color, message + Fore.RESET + data])
+    if save:
+        history.append([color, message + Fore.RESET + data])
     return data

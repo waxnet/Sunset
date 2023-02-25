@@ -3,6 +3,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
 from win32api import GetSystemMetrics
 from selenium import webdriver
+from utilities import log
 import os
 
 timeout = 0
@@ -28,11 +29,15 @@ def start(driver_version):
     return driver
 
 def wait_for_element(driver, id):
-    try: return WebDriverWait(driver, timeout).until(expected_conditions.visibility_of_element_located((By.ID, id)))
-    except: exit()
+    try:
+        return WebDriverWait(driver, timeout).until(expected_conditions.visibility_of_element_located((By.ID, id)))
+    except Exception as data:
+        log.crash(data)
+        exit()
 
 def is_displayed(driver, id):
     try:
         WebDriverWait(driver, 5).until(expected_conditions.visibility_of_element_located((By.ID, id)))
         return True
-    except: return False
+    except:
+        return False
