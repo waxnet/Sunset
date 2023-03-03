@@ -1,6 +1,5 @@
 from utilities import (
-    install_sunset, 
-    install_driver,
+    install,
     account,
     config,
     chrome,
@@ -11,42 +10,54 @@ from utilities import (
 )
 from msvcrt import getch
 from time import sleep
+import os
 
 class Sunset:
     def __init__(self):
         super(Sunset, self).__init__()
         
         self.driver_version = "110.0.5481.77"
+        self.uses_proxies = False
         self.accounts_per_ip = None
         
         self.print = color.print_
         self.input = color.input_
 
-        self.install()
+        self.load()
         self.console()
 
-    def install(self):
-        is_sunset_installed = install_sunset.run()
-        is_driver_installed = install_driver.run(self.driver_version)
-        if not is_sunset_installed or not is_driver_installed:
-            log.crash("error while installing dependencies")
-            exit()
-
+    def load(self):
+        cmd.do(["title Sunset", "mode con: cols=120 lines=30", "cls"])
+        for _ in range(15):
+            print()
+        self.print("light_black", "loading...".center(120), save=False)
+        for _ in range(14):
+            print()
+        
+        install.sunset()
+        install.driver(self.driver_version)
+        
     def start(self):
         chrome.timeout = 60
         configuration = config.load("assets/config.json")
         while True:
             for _ in range(self.accounts_per_ip):
+                if self.uses_proxies and chrome.current_proxy == len(chrome.proxy_list):
+                    self.uses_proxies = False
+                    chrome.use_proxy = False
+                    self.print("light_black", "All proxies have been used, skipping cycle...\n")
+                    break
+                
                 credentials = account.generate_credentials()
                 driver = chrome.start(self.driver_version)
 
                 driver.get("https://account.microsoft.com/account?lang=en-en")
 
                 self.print("light_black", "Generating account...")
-                if chrome.is_displayed(driver, "createaccounthero"):
-                    chrome.wait_for_element(driver, "createaccounthero").click()
-                else:
+                if chrome.is_displayed(driver, "id__10"):
                     chrome.wait_for_element(driver, "id__10").click()
+                else:
+                    chrome.wait_for_element(driver, "createaccounthero").click()
 
                 chrome.wait_for_element(driver, "MemberName").send_keys(credentials["email"])
                 chrome.wait_for_element(driver, "iSignupAction").click()
@@ -54,12 +65,18 @@ class Sunset:
                 chrome.wait_for_element(driver, "PasswordInput").send_keys(credentials["password"])
                 chrome.wait_for_element(driver, "iOptinEmail").click()
                 chrome.wait_for_element(driver, "iSignupAction").click()
-
-                chrome.wait_for_element(driver, "Country").send_keys(credentials["country"])
-                chrome.wait_for_element(driver, "BirthMonth").send_keys(credentials["birthmonth"])
-                chrome.wait_for_element(driver, "BirthDay").send_keys(credentials["birthday"])
-                chrome.wait_for_element(driver, "BirthYear").send_keys(credentials["birthyear"])
-                chrome.wait_for_element(driver, "iSignupAction").click()
+                
+                entered_country, entered_age = False, False
+                if self.uses_proxies and chrome.is_displayed(driver, "Country") or not self.uses_proxies:
+                    chrome.wait_for_element(driver, "Country").send_keys(credentials["country"])
+                    entered_country = True
+                if self.uses_proxies and chrome.is_displayed(driver, "BirthMonth") or not self.uses_proxies:
+                    chrome.wait_for_element(driver, "BirthMonth").send_keys(credentials["birthmonth"])
+                    chrome.wait_for_element(driver, "BirthDay").send_keys(credentials["birthday"])
+                    chrome.wait_for_element(driver, "BirthYear").send_keys(credentials["birthyear"])
+                    entered_age = True
+                if (self.uses_proxies and chrome.is_displayed(driver, "iSignupAction") or not self.uses_proxies) and entered_country or entered_age:
+                    chrome.wait_for_element(driver, "iSignupAction").click()
                 
                 if chrome.is_displayed(driver, "wlspispHipControlButtonsContainer"):
                     driver.quit()
@@ -78,17 +95,24 @@ class Sunset:
                     driver.quit()
                     sleep(1)
             
-            self.print("yellow", "Finished generation cycle, once you have changed your IP press ENTER to resume or any other key to exit..."); print()
+            cycle_phrase = "Finished generation cycle, once you have changed your IP press ENTER to resume or any other key to exit..."
+            if self.uses_proxies:
+                cycle_phrase = "Finished generation cycle, once you're ready press ENTER to resume or any other key to exit..."
+                chrome.current_proxy += 1
+            self.print("yellow", cycle_phrase)
+            print()
             
             pressed_key = getch()
             if pressed_key.lower() != b"\r":
-                exit()
+                break
+        exit()
 
     def console(self):
-        cmd.do(["title Sunset", "mode con: cols=120 lines=30", "cls"])
-
-        self.print("light_blue", assets.get_banner("assets/banners.json")); sleep(1)
-        self.print("cyan", "\nWelcome to Sunset!\n"); sleep(.25)
+        cmd.do(["cls"])
+        self.print("light_blue", assets.get_banner("assets/banners.json"))
+        sleep(1)
+        self.print("cyan", "\nWelcome to Sunset!\n")
+        sleep(.25)
 
         if self.input("yellow", "Do you want to generate new Microsoft Accounts? (y, n) : ").lower().replace(" ", "") != "y":
             exit()
@@ -99,13 +123,23 @@ class Sunset:
             cmd.do(["cls"])
             color.load_history()
         
-        self.accounts_per_ip = int(self.input("yellow", "How many accounts do you want to generate per IP? (min 1, max 3) : ").lower().replace(" ", ""))
+        if os.path.exists("proxies.txt") and os.path.getsize("proxies.txt") != 0 and self.input("yellow", "Do you want to use proxies? (y, n) : ").lower().replace(" ", "") == "y":
+            self.uses_proxies = True
+            chrome.use_proxy = True
+            chrome.get_proxies()
+        
+        try:
+            self.accounts_per_ip = int(self.input("yellow", "How many accounts do you want to generate per IP? (min 1, max 3) : ").lower().replace(" ", ""))
+        except Exception as data:
+            log.crash(data)
+            exit()
         if self.accounts_per_ip > 3:
             self.accounts_per_ip = 3
         elif self.accounts_per_ip < 1:
             self.accounts_per_ip = 1
 
-        self.print("cyan", "\nStarting... (if the captcha doesn't work change IP)\n"); sleep(3)
+        self.print("cyan", "\nStarting... (if the captcha doesn't work change IP)\n")
+        sleep(1)
         self.start()
 
 Sunset()
