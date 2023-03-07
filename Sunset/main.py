@@ -5,6 +5,7 @@ from utilities import (
     chrome,
     assets,
     color,
+    proxy,
     log,
     cmd,
 )
@@ -17,14 +18,17 @@ class Sunset:
         super(Sunset, self).__init__()
         
         self.driver_version = "110.0.5481.77"
-        self.uses_proxies = False
         self.accounts_per_ip = None
         
         self.print = color.print_
         self.input = color.input_
-
-        self.load()
-        self.console()
+        
+        try:
+            self.load()
+            self.console()
+        except Exception as data:
+            log.crash(data)
+            exit()
 
     def load(self):
         cmd.do(["title Sunset", "mode con: cols=120 lines=30", "cls"])
@@ -38,17 +42,15 @@ class Sunset:
         install.driver(self.driver_version)
         
     def start(self):
-        chrome.timeout = 60
         configuration = config.load("assets/config.json")
         while True:
             for _ in range(self.accounts_per_ip):
-                if self.uses_proxies and chrome.current_proxy == len(chrome.proxy_list):
-                    self.uses_proxies = False
-                    chrome.use_proxy = False
+                if proxy.data.enabled and proxy.data.current == len(proxy.data.list):
+                    proxy.data.enabled = False
                     self.print("light_black", "All proxies have been used, skipping cycle...\n")
                     break
                 
-                credentials = account.generate_credentials()
+                credentials = account.generate_credentials(configuration["account-domain-name"])
                 driver = chrome.start(self.driver_version)
 
                 driver.get("https://account.microsoft.com/account?lang=en-en")
@@ -67,15 +69,15 @@ class Sunset:
                 chrome.wait_for_element(driver, "iSignupAction").click()
                 
                 entered_country, entered_age = False, False
-                if self.uses_proxies and chrome.is_displayed(driver, "Country") or not self.uses_proxies:
+                if chrome.is_displayed(driver, "Country"):
                     chrome.wait_for_element(driver, "Country").send_keys(credentials["country"])
                     entered_country = True
-                if self.uses_proxies and chrome.is_displayed(driver, "BirthMonth") or not self.uses_proxies:
+                if chrome.is_displayed(driver, "BirthMonth"):
                     chrome.wait_for_element(driver, "BirthMonth").send_keys(credentials["birthmonth"])
                     chrome.wait_for_element(driver, "BirthDay").send_keys(credentials["birthday"])
                     chrome.wait_for_element(driver, "BirthYear").send_keys(credentials["birthyear"])
                     entered_age = True
-                if (self.uses_proxies and chrome.is_displayed(driver, "iSignupAction") or not self.uses_proxies) and entered_country or entered_age:
+                if chrome.is_displayed(driver, "iSignupAction") and entered_country or entered_age:
                     chrome.wait_for_element(driver, "iSignupAction").click()
                 
                 if chrome.is_displayed(driver, "wlspispHipControlButtonsContainer"):
@@ -89,16 +91,16 @@ class Sunset:
                     chrome.wait_for_element(driver, "KmsiCheckboxField").click()
                     chrome.wait_for_element(driver, "idBtn_Back").click()
                     
-                    account.save(credentials, configuration["accounts-file-directory"], configuration["accounts-file-name"], configuration["accounts-file-extension"])
+                    account.save(credentials, configuration["account-file-directory"], configuration["account-file-name"], configuration["account-file-extension"])
                     self.print("light_black", "Account generated and stored successfully!\n")
 
                     driver.quit()
                     sleep(1)
             
             cycle_phrase = "Finished generation cycle, once you have changed your IP press ENTER to resume or any other key to exit..."
-            if self.uses_proxies:
+            if proxy.data.enabled:
                 cycle_phrase = "Finished generation cycle, once you're ready press ENTER to resume or any other key to exit..."
-                chrome.current_proxy += 1
+                proxy.data.current += 1
             self.print("yellow", cycle_phrase)
             print()
             
@@ -119,24 +121,21 @@ class Sunset:
 
         if self.input("yellow", "Do you want to edit the current configuration? (y, n) : ").lower().replace(" ", "") == "y":
             cmd.do(["cls"])
-            config.edit("assets/config.json", config.load("assets/config.json"), assets.get_config_banner("assets/banners.json"), [self.print, self.input])
+            config.edit("assets/config.json", config.load("assets/config.json"), assets.get_config_banner("assets/banners.json"))
             cmd.do(["cls"])
             color.load_history()
         
-        if os.path.exists("proxies.txt") and os.path.getsize("proxies.txt") != 0 and self.input("yellow", "Do you want to use proxies? (y, n) : ").lower().replace(" ", "") == "y":
-            self.uses_proxies = True
-            chrome.use_proxy = True
-            chrome.get_proxies()
-        
-        try:
-            self.accounts_per_ip = int(self.input("yellow", "How many accounts do you want to generate per IP? (min 1, max 3) : ").lower().replace(" ", ""))
-        except Exception as data:
-            log.crash(data)
-            exit()
+        self.accounts_per_ip = int(self.input("yellow", "How many accounts do you want to generate per IP? (min 1, max 3) : ").lower().replace(" ", ""))
         if self.accounts_per_ip > 3:
             self.accounts_per_ip = 3
         elif self.accounts_per_ip < 1:
             self.accounts_per_ip = 1
+        
+        if os.path.exists("proxies.txt") and os.path.getsize("proxies.txt") != 0 and self.input("yellow", "Do you want to use proxies? (y, n) : ").lower().replace(" ", "") == "y":
+            proxy.data.enabled = True
+            if self.input("yellow", "Do you want check the proxies before using them? (y, n) : ").lower().replace(" ", "") == "y":
+                proxy.data.check = True
+            proxy.parse_proxies()
 
         self.print("cyan", "\nStarting... (if the captcha doesn't work change IP)\n")
         sleep(1)

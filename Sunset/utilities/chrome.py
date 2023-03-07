@@ -4,13 +4,11 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
 from win32api import GetSystemMetrics
 from selenium import webdriver
-from utilities import log
+from utilities import (
+    proxy,
+    log,
+)
 import os
-
-current_proxy = 0
-use_proxy = False
-proxy_list = []
-timeout = 0
 
 def start(driver_version):
     driver_directory = os.getenv("appdata") + f"/Sunset/drivers/{driver_version}.exe"
@@ -23,10 +21,9 @@ def start(driver_version):
     })
     driver_options.add_experimental_option("excludeSwitches", ["enable-logging"])
     
-    if len(proxy_list) != 0 and use_proxy:
-        global current_proxy
-        proxy = proxy_list[current_proxy]
-        driver_options.add_argument(f"--proxy-server={proxy}")
+    if len(proxy.data.list) != 0 and proxy.data.enabled:
+        proxy_server = proxy.data.list[proxy.data.current]
+        driver_options.add_argument(f"--proxy-server={proxy_server}")
     
     size = (450, 600)
     position = (round(GetSystemMetrics(0) / 2 - size[0] / 2), round(GetSystemMetrics(1) / 2 - size[1] / 2))
@@ -43,7 +40,7 @@ def start(driver_version):
 
 def wait_for_element(driver, id):
     try:
-        return WebDriverWait(driver, timeout).until(expected_conditions.visibility_of_element_located((By.ID, id)))
+        return WebDriverWait(driver, 60).until(expected_conditions.visibility_of_element_located((By.ID, id)))
     except Exception as data:
         log.crash(data)
         exit()
@@ -54,9 +51,3 @@ def is_displayed(driver, id):
         return True
     except:
         return False
-
-def get_proxies():
-    global proxy_list
-    with open("proxies.txt") as proxies_file:
-        proxy_list = proxies_file.readlines()
-        proxies_file.close()
