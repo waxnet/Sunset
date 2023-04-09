@@ -17,7 +17,7 @@ class Sunset:
     def __init__(self):
         super(Sunset, self).__init__()
         
-        self.driver_version = "110.0.5481.77"
+        self.driver_version = "112.0.5615.49"
         self.accounts_per_ip = None
         
         self.print = color.print_
